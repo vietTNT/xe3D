@@ -1,0 +1,10 @@
+build/
+out/
+cmake-build-*/
+.vs/
+.vscode/
+.idea/
+*.user
+settings.cfg
+*.ppm
+track_layout.csv
