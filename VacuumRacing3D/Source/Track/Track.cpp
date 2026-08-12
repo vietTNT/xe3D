@@ -292,11 +292,6 @@ TrackSample Track::sampleAt(float distance) const {
     return out;
 }
 
-glm::vec3 Track::surfacePoint(float distance, float lateral) const {
-    const TrackSample s = sampleAt(distance);
-    return s.position + s.right * lateral;
-}
-
 glm::vec3 Track::racingLinePoint(float distance) const {
     const TrackSample s = sampleAt(distance);
     return s.position + s.right * s.lineOffset;
@@ -304,17 +299,48 @@ glm::vec3 Track::racingLinePoint(float distance) const {
 
 float Track::racingLineSpeed(float distance) const { return sampleAt(distance).lineSpeed; }
 
+Track::SurfaceProfileInfo Track::sampleSurfaceProfile(float lateral) const {
+    SurfaceProfileInfo info;
+    const float absLat    = std::fabs(lateral);
+    const float curbStart = kHalfWidth;             // 7.2m
+    const float curbEnd   = kHalfWidth + kCurbWidth; // 8.45m
+
+    if (absLat <= curbStart) {
+        // Asphalt racing surface
+        info.heightOffset = 0.0f;
+        info.normalTilt   = 0.0f;
+        info.isCurb       = false;
+    } else if (absLat <= curbEnd) {
+        // Beveled drivable curb ramp (smooth ramp height from 0.02m to 0.10m)
+        const float t = (absLat - curbStart) / kCurbWidth;
+        const float rampT = math::smoothstepf(0.0f, 1.0f, t);
+        info.heightOffset = math::lerpf(0.02f, 0.10f, rampT);
+        info.normalTilt   = (lateral > 0.0f ? -0.12f : 0.12f);
+        info.isCurb       = true;
+    } else {
+        // Runoff apron / grass
+        info.heightOffset = 0.0f;
+        info.normalTilt   = 0.0f;
+        info.isCurb       = false;
+    }
+    return info;
+}
+
+glm::vec3 Track::surfacePoint(float distance, float lateral) const {
+    const TrackSample s = sampleAt(distance);
+    const SurfaceProfileInfo profile = sampleSurfaceProfile(lateral);
+    return s.position + s.right * lateral + s.up * (std::sin(s.bank) * lateral + profile.heightOffset);
+}
+
 TrackQuery Track::locate(const glm::vec3& position, int hint) const {
     TrackQuery q;
-    if (m_samples.empty()) return q;
-    const int count = (int)m_samples.size();
+    const int  count = (int)m_samples.size();
+    if (count == 0) return q;
 
-    int best = 0;
-    if (hint >= 0) {
-        // Local search around the previous result (cars move a few metres/frame).
+    int best = (hint >= 0 && hint < count) ? hint : 0;
+    if (hint >= 0 && hint < count) {
         float bestD2 = 1e18f;
-        const int window = 90;
-        for (int o = -window; o <= window; ++o) {
+        for (int o = -16; o <= 16; ++o) {
             const int i = ((hint + o) % count + count) % count;
             const glm::vec3 d = position - m_samples[(size_t)i].position;
             const float d2 = d.x * d.x + d.z * d.z;
@@ -351,26 +377,29 @@ TrackQuery Track::locate(const glm::vec3& position, int hint) const {
     q.index    = best;
     q.distance = std::fmod(s.distance + along + m_length, m_length);
 
-    // Re-project onto the interpolated frame at that arc length. Snapping to the
-    // nearest 3 m sample would step the road height, which reads as the car
-    // twitching up and down; interpolating keeps the surface perfectly smooth.
     const TrackSample interp = sampleAt(q.distance);
     q.lateral  = glm::dot(position - interp.position, interp.right);
     q.forward  = interp.forward;
-    q.normal   = interp.up;
-    q.onAsphalt = std::fabs(q.lateral) <= kHalfWidth + kCurbWidth;
 
-    // Height: banked asphalt near the centre line, flattening out on the grass.
-    const float bankY = interp.position.y + std::sin(interp.bank) * q.lateral;
+    // Single Source of Truth cross-section height and normal evaluation
+    const SurfaceProfileInfo profile = sampleSurfaceProfile(q.lateral);
+    const float bankY = interp.position.y + std::sin(interp.bank) * q.lateral + profile.heightOffset;
     const float edge  = kWallOffset;
+
     if (std::fabs(q.lateral) <= edge) {
         q.surfaceY = bankY;
     } else {
         const float t = math::saturate((std::fabs(q.lateral) - edge) / 45.0f);
-        // Use the track's ground level (m_groundLevel) as the fall-back height
-        // so the collision surface matches the distant ground/grass geometry.
         q.surfaceY = math::lerpf(bankY, m_groundLevel, t);
     }
+
+    // Apply tilt to surface normal when on curb
+    if (profile.isCurb) {
+        q.normal = glm::normalize(interp.up + interp.right * profile.normalTilt);
+    } else {
+        q.normal = interp.up;
+    }
+    q.onAsphalt = !profile.isCurb && std::fabs(q.lateral) <= kHalfWidth;
     return q;
 }
 
@@ -464,7 +493,7 @@ void Track::buildAsphalt(const ResourceManager& res) {
             const float edge   = 1.0f - 0.10f * math::smoothstepf(kHalfWidth - 2.5f,
                                                                   kHalfWidth, std::fabs(lat));
             Vertex v;
-            v.position = s.position + s.right * lat;
+            v.position = surfacePoint(s.distance, lat);
             v.normal   = s.up;
             v.uv       = glm::vec2(lat * 0.075f, s.distance * 0.075f);
             v.color    = glm::vec3(rubber * edge);
@@ -502,10 +531,10 @@ void Track::buildMarkings() {
         for (int i = 0; i < count; ++i) {
             const TrackSample& s0 = m_samples[(size_t)i];
             const TrackSample& s1 = m_samples[(size_t)((i + 1) % count)];
-            const glm::vec3 a = s0.position + s0.right * latInner + s0.up * lift;
-            const glm::vec3 b = s0.position + s0.right * latOuter + s0.up * lift;
-            const glm::vec3 c = s1.position + s1.right * latOuter + s1.up * lift;
-            const glm::vec3 d = s1.position + s1.right * latInner + s1.up * lift;
+            const glm::vec3 a = surfacePoint(s0.distance, latInner) + s0.up * lift;
+            const glm::vec3 b = surfacePoint(s0.distance, latOuter) + s0.up * lift;
+            const glm::vec3 c = surfacePoint(s1.distance, latOuter) + s1.up * lift;
+            const glm::vec3 d = surfacePoint(s1.distance, latInner) + s1.up * lift;
             mb.addQuadN(a, b, c, d, s0.up, s0.up, s1.up, s1.up, glm::vec2(0.0f),
                         glm::vec2(1.0f, 0.0f), glm::vec2(1.0f), glm::vec2(0.0f, 1.0f), color);
         }
@@ -560,15 +589,14 @@ void Track::buildCurbs() {
             // Scuffed rubber marks on the curb faces.
             col *= 0.86f + 0.14f * std::fabs(std::sin(s0.distance * 0.7f));
 
-            const float h0 = 0.055f + 0.075f * m0;
-            const float h1 = 0.055f + 0.075f * m1;
+            (void)m0; (void)m1;
             const float innerLat = (float)side * kHalfWidth;
             const float outerLat = (float)side * (kHalfWidth + kCurbWidth);
 
-            const glm::vec3 i0p = s0.position + s0.right * innerLat + s0.up * 0.02f;
-            const glm::vec3 i1p = s1.position + s1.right * innerLat + s1.up * 0.02f;
-            const glm::vec3 o0p = s0.position + s0.right * outerLat + s0.up * h0;
-            const glm::vec3 o1p = s1.position + s1.right * outerLat + s1.up * h1;
+            const glm::vec3 i0p = surfacePoint(s0.distance, innerLat);
+            const glm::vec3 i1p = surfacePoint(s1.distance, innerLat);
+            const glm::vec3 o0p = surfacePoint(s0.distance, outerLat);
+            const glm::vec3 o1p = surfacePoint(s1.distance, outerLat);
 
             if (side > 0) {
                 mb.addQuadN(i0p, o0p, o1p, i1p, s0.up, s0.up, s1.up, s1.up, glm::vec2(0.0f),
@@ -616,10 +644,10 @@ void Track::buildContinuousCurbs(const ResourceManager& res) {
 
             const float innerLat = (float)side * kHalfWidth;
             const float outerLat = (float)side * (kHalfWidth + kCurbWidth);
-            const glm::vec3 i0p = s0.position + s0.right * innerLat + s0.up * 0.02f;
-            const glm::vec3 i1p = s1.position + s1.right * innerLat + s1.up * 0.02f;
-            const glm::vec3 o0p = s0.position + s0.right * outerLat + s0.up * 0.06f;
-            const glm::vec3 o1p = s1.position + s1.right * outerLat + s1.up * 0.06f;
+            const glm::vec3 i0p = surfacePoint(s0.distance, innerLat);
+            const glm::vec3 i1p = surfacePoint(s1.distance, innerLat);
+            const glm::vec3 o0p = surfacePoint(s0.distance, outerLat);
+            const glm::vec3 o1p = surfacePoint(s1.distance, outerLat);
 
             // Alternate red/white along the track length using distance bands.
             const bool red = (((int)(s0.distance / 2.6f)) % 2) == 0;

@@ -83,6 +83,7 @@ private:
     float     m_flash       = 0.0f;
     int       m_lastLightsLit = 0;
     float     m_aiTimer     = 0.0f;
+    int       m_lastAppliedColor = -1;  ///< tracks which carColor was last baked into livery[0]
 
     // Splash screen timing/state
     float m_splashTimer = 0.0f;

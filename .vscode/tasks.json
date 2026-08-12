@@ -1,0 +1,61 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "CMake: Configure",
+      "type": "shell",
+      "command": "C:/Program Files/CMake/bin/cmake.exe",
+      "args": [
+        "-B",
+        "build",
+        "-G",
+        "MinGW Makefiles",
+        "-DCMAKE_C_COMPILER=C:/mingw64/bin/gcc.exe",
+        "-DCMAKE_CXX_COMPILER=C:/mingw64/bin/g++.exe",
+        "-DCMAKE_MAKE_PROGRAM=C:/mingw64/bin/mingw32-make.exe",
+        "-DCMAKE_BUILD_TYPE=Release"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/VacuumRacing3D"
+      },
+      "group": "none"
+    },
+    {
+      "label": "CMake: Build (Release)",
+      "type": "shell",
+      "command": "C:/Program Files/CMake/bin/cmake.exe",
+      "args": [
+        "--build",
+        "build",
+        "--config",
+        "Release",
+        "-j"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/VacuumRacing3D"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": "$gcc"
+    },
+    {
+      "label": "Run VacuumRacing3D",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-Command",
+        "if (Test-Path '.\\build\\VacuumRacing3D.exe') { .\\build\\VacuumRacing3D.exe } else { .\\build\\Release\\VacuumRacing3D.exe }"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/VacuumRacing3D"
+      },
+      "dependsOn": "CMake: Build (Release)",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    }
+  ]
+}

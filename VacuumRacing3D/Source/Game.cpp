@@ -99,6 +99,16 @@ void Game::stepLoading() {
         default:
             m_worldReady = true;
             std::printf("[Game] world ready - entering the main menu\n");
+            Vehicle::runPhysicsDiagnosticTests(m_track);
+            // Apply the player's saved colour to livery slot 0 immediately.
+            {
+                const glm::vec3 pc(kCarColors[m_settings.carColor].r,
+                                   kCarColors[m_settings.carColor].g,
+                                   kCarColors[m_settings.carColor].b);
+                m_resources.regeneratePlayerLivery(pc, 12);
+                m_cars[0].configure(pc, false, 0, kDriverNames[0]);
+                m_lastAppliedColor = m_settings.carColor;
+            }
             m_state = GameState::MainMenu;
             m_menu.resetFocus();
             m_audio.setMusic(MusicMood::Menu);
@@ -115,13 +125,18 @@ void Game::startRace() {
     const glm::vec3 playerColor(kCarColors[m_settings.carColor].r,
                                 kCarColors[m_settings.carColor].g,
                                 kCarColors[m_settings.carColor].b);
+    m_resources.regeneratePlayerLivery(playerColor, 12);
     m_cars[0].configure(playerColor, false, 0, kDriverNames[0]);
 
     // Slot 5 is the back of the grid: the player has to work through the field.
     const int slotFor[kCarCount] = {kPlayerSlot, 0, 1, 2, 3, 4};
     for (int i = 0; i < kCarCount; ++i) {
         m_cars[(size_t)i].reset(m_track, slotFor[i]);
-        if (i > 0) m_ai[(size_t)i].init(i, 0.855f + 0.022f * (float)i, 9001u);
+        if (i > 0) {
+            const glm::vec3 aiColor(kAIColors[(i - 1) % 5].r, kAIColors[(i - 1) % 5].g, kAIColors[(i - 1) % 5].b);
+            m_cars[(size_t)i].configure(aiColor, true, i, kDriverNames[i]);
+            m_ai[(size_t)i].init(i, 0.855f + 0.022f * (float)i, 9001u + (unsigned int)i);
+        }
     }
     m_particles.clear();
     m_race.begin(m_track, m_cars, 3);
@@ -400,6 +415,7 @@ void Game::drawInterface(float dt) {
         case MenuAction::GoColorSelect:
             m_state = GameState::ColorSelect;
             m_menu.resetFocus();
+            m_lastAppliedColor = -1;  // force livery regen on first color select frame
             break;
         case MenuAction::GoSettings:
             m_returnState = m_state;
@@ -472,11 +488,24 @@ void Game::run() {
                 stepLoading();
                 break;
             case GameState::MainMenu:
-            case GameState::ColorSelect:
             case GameState::SettingsMenu:
                 updateMenuCamera(dt);
                 m_audio.setEngine(950.0f, 0.0f, 0.0f);
                 m_audio.setTyreSlip(0.0f);
+                break;
+            case GameState::ColorSelect:
+                updateMenuCamera(dt);
+                m_audio.setEngine(950.0f, 0.0f, 0.0f);
+                m_audio.setTyreSlip(0.0f);
+                // Live-update the player car livery when a new colour is picked.
+                if (m_lastAppliedColor != m_settings.carColor) {
+                    m_lastAppliedColor = m_settings.carColor;
+                    const glm::vec3 c(kCarColors[m_settings.carColor].r,
+                                      kCarColors[m_settings.carColor].g,
+                                      kCarColors[m_settings.carColor].b);
+                    m_resources.regeneratePlayerLivery(c, 12);
+                    m_cars[0].configure(c, false, 0, kDriverNames[0]);
+                }
                 break;
             case GameState::Race:
                 updateRace(dt);

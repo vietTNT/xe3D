@@ -70,6 +70,8 @@ std::vector<unsigned char> smokePuff(int size);
 std::vector<unsigned char> softGlow(int size);
 std::vector<unsigned char> sponsorBoard(int size, const glm::vec3& base, int style);
 std::vector<unsigned char> white(int size);
+std::vector<unsigned char> nascarLivery(int size, const glm::vec3& primaryColor = glm::vec3(0.85f, 0.12f, 0.10f), int number = 12);
+std::vector<unsigned char> windowNet(int size);
 
 } // namespace procedural
 } // namespace vr

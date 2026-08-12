@@ -153,14 +153,50 @@ void CarModel::buildBodyShell(int quality) {
                 target = &trim;   
                 color  = glm::vec3(0.08f);
             }
-            const float uScale = 0.35f;
-            target->addQuadN(p0, p1, p2, p3, n0, n1, n2, n3,
-                             glm::vec2((float)k / (float)segments, kStations[i].z * uScale),
-                             glm::vec2((float)(k + 1) / (float)segments, kStations[i].z * uScale),
-                             glm::vec2((float)(k + 1) / (float)segments,
-                                       kStations[i + 1].z * uScale),
-                             glm::vec2((float)k / (float)segments, kStations[i + 1].z * uScale),
-                             color);
+            glm::vec2 uv0, uv1, uv2, uv3;
+            if (target == &paint) {
+                float u0 = (float)k / (float)segments;
+                float u1 = (float)(k + 1) / (float)segments;
+                float z0 = (kStations[i].z + 2.31f) / 4.62f;
+                float z1 = (kStations[i + 1].z + 2.31f) / 4.62f;
+                if (roofish) {
+                    uv0 = glm::vec2(0.32f + 0.36f * u0, 0.72f + 0.24f * z0);
+                    uv1 = glm::vec2(0.32f + 0.36f * u1, 0.72f + 0.24f * z0);
+                    uv2 = glm::vec2(0.32f + 0.36f * u1, 0.72f + 0.24f * z1);
+                    uv3 = glm::vec2(0.32f + 0.36f * u0, 0.72f + 0.24f * z1);
+                } else if (centre.z > 0.8f) {
+                    uv0 = glm::vec2(0.25f + 0.50f * u0, 0.55f + 0.13f * z0);
+                    uv1 = glm::vec2(0.25f + 0.50f * u1, 0.55f + 0.13f * z0);
+                    uv2 = glm::vec2(0.25f + 0.50f * u1, 0.55f + 0.13f * z1);
+                    uv3 = glm::vec2(0.25f + 0.50f * u0, 0.55f + 0.13f * z1);
+                } else if (centre.x < -0.3f) {
+                    uv0 = glm::vec2(0.12f + 0.30f * z0, 0.12f + 0.30f * (1.0f - u0));
+                    uv1 = glm::vec2(0.12f + 0.30f * z0, 0.12f + 0.30f * (1.0f - u1));
+                    uv2 = glm::vec2(0.12f + 0.30f * z1, 0.12f + 0.30f * (1.0f - u1));
+                    uv3 = glm::vec2(0.12f + 0.30f * z1, 0.12f + 0.30f * (1.0f - u0));
+                } else if (centre.x > 0.3f) {
+                    uv0 = glm::vec2(0.58f + 0.30f * z0, 0.12f + 0.30f * u0);
+                    uv1 = glm::vec2(0.58f + 0.30f * z0, 0.12f + 0.30f * u1);
+                    uv2 = glm::vec2(0.58f + 0.30f * z1, 0.12f + 0.30f * u1);
+                    uv3 = glm::vec2(0.58f + 0.30f * z1, 0.12f + 0.30f * u0);
+                } else {
+                    float v0 = (p0.y - 0.20f) / 1.15f;
+                    float v1 = (p1.y - 0.20f) / 1.15f;
+                    float v2 = (p2.y - 0.20f) / 1.15f;
+                    float v3 = (p3.y - 0.20f) / 1.15f;
+                    uv0 = glm::vec2(u0, v0);
+                    uv1 = glm::vec2(u1, v1);
+                    uv2 = glm::vec2(u1, v2);
+                    uv3 = glm::vec2(u0, v3);
+                }
+            } else {
+                const float uScale = 0.35f;
+                uv0 = glm::vec2((float)k / (float)segments, kStations[i].z * uScale);
+                uv1 = glm::vec2((float)(k + 1) / (float)segments, kStations[i].z * uScale);
+                uv2 = glm::vec2((float)(k + 1) / (float)segments, kStations[i + 1].z * uScale);
+                uv3 = glm::vec2((float)k / (float)segments, kStations[i + 1].z * uScale);
+            }
+            target->addQuadN(p0, p1, p2, p3, n0, n1, n2, n3, uv0, uv1, uv2, uv3, color);
         }
     }
 
@@ -238,10 +274,10 @@ void CarModel::buildAero() {
         carbon.addBox(glm::vec3((float)s * 0.85f, 0.22f, 0.0f), glm::vec3(0.02f, 0.10f, 1.8f), glm::vec3(0.1f));
     }
 
-    // Cánh gió dạng tấm dựng đứng ở cốp sau (NASCAR Blade Spoiler)
-    carbon.addBox(glm::vec3(0.0f, 1.05f, -2.25f), glm::vec3(0.82f, 0.08f, 0.02f), glm::vec3(0.1f)); 
-    carbon.addBox(glm::vec3(-0.6f, 1.05f, -2.2f), glm::vec3(0.02f, 0.08f, 0.06f), glm::vec3(0.1f));
-    carbon.addBox(glm::vec3( 0.6f, 1.05f, -2.2f), glm::vec3(0.02f, 0.08f, 0.06f), glm::vec3(0.1f));
+    // Cánh gió dạng tấm dựng đứng ở cốp sau (NASCAR Blade Spoiler màu đỏ/đen)
+    carbon.addBox(glm::vec3(0.0f, 1.08f, -2.25f), glm::vec3(0.85f, 0.12f, 0.02f), glm::vec3(0.85f, 0.12f, 0.10f)); 
+    carbon.addBox(glm::vec3(-0.65f, 1.08f, -2.2f), glm::vec3(0.02f, 0.12f, 0.06f), glm::vec3(0.1f));
+    carbon.addBox(glm::vec3( 0.65f, 1.08f, -2.2f), glm::vec3(0.02f, 0.12f, 0.06f), glm::vec3(0.1f));
 
     carbon.build(m_carbon);
 }
@@ -329,6 +365,23 @@ void CarModel::buildDetails() {
     trim.addBox(glm::vec3(0.0f, 1.352f, -0.80f), glm::vec3(0.035f, 0.05f, 0.16f),
                 glm::vec3(0.06f));
 
+    // Driver side window safety net (Lưới bảo vệ cửa sổ tài xế)
+    MeshBuilder windowNetBuilder;
+    windowNetBuilder.addQuad(glm::vec3(-0.955f, 0.98f, 0.50f),
+                             glm::vec3(-0.955f, 0.98f, -0.40f),
+                             glm::vec3(-0.955f, 1.25f, -0.35f),
+                             glm::vec3(-0.955f, 1.25f, 0.40f),
+                             glm::vec3(1.0f));
+    windowNetBuilder.build(m_windowNet);
+
+    // Dual chrome side exhaust pipes under right rocker panel (NASCAR style)
+    MeshBuilder exhaustBuilder;
+    exhaustBuilder.addCylinder(glm::vec3(0.96f, 0.28f, -0.45f), glm::vec3(0.12f, 0.0f, 0.0f),
+                               0.045f, 0.052f, 12, glm::vec3(1.0f));
+    exhaustBuilder.addCylinder(glm::vec3(0.96f, 0.28f, -0.58f), glm::vec3(0.12f, 0.0f, 0.0f),
+                               0.045f, 0.052f, 12, glm::vec3(1.0f));
+    exhaustBuilder.build(m_sideExhaust);
+
     trim.build(m_trim);   
     chrome.build(m_chrome);
     m_trimAccum.clear();
@@ -389,17 +442,27 @@ void CarModel::buildWheel(int quality) {
     const float W = kWheelWidth;
 
     // 1. Lốp béo NASCAR đen đặc
-    const int seg = 16; 
+    const int seg = 18; 
     for (int i = 0; i < seg; ++i) {
         float a = math::kTwoPi * (float)i / (float)seg;
         glm::mat4 xf = glm::rotate(glm::mat4(1.0f), a, glm::vec3(1.0f, 0.0f, 0.0f)) *
                        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, R * 0.9f, 0.0f)) *
                        glm::scale(glm::mat4(1.0f), glm::vec3(W, R * 0.22f, R * 0.42f));
-        tyre.addTransformedBox(xf, glm::vec3(0.08f)); 
+        tyre.addTransformedBox(xf, glm::vec3(0.07f)); 
     }
 
-    // 2. Mâm thép (Steelies) sơn màu ĐỎ ĐẬM
-    const glm::vec3 redRim(0.75f, 0.15f, 0.20f);
+    // Yellow/Gold tire sidewall lettering ring accent (matching reference design sheet)
+    const glm::vec3 yellowSidewall(0.95f, 0.82f, 0.10f);
+    for (int i = 0; i < seg; ++i) {
+        float a = math::kTwoPi * (float)i / (float)seg;
+        glm::mat4 xf = glm::rotate(glm::mat4(1.0f), a, glm::vec3(1.0f, 0.0f, 0.0f)) *
+                       glm::translate(glm::mat4(1.0f), glm::vec3(W * 0.51f, R * 0.78f, 0.0f)) *
+                       glm::scale(glm::mat4(1.0f), glm::vec3(0.015f, R * 0.06f, R * 0.25f));
+        tyre.addTransformedBox(xf, yellowSidewall);
+    }
+
+    // 2. Mâm thép (Deep-Dish Red Steelies) sơn màu ĐỎ ĐẬM chuẩn NASCAR
+    const glm::vec3 redRim(0.85f, 0.12f, 0.18f);
     for (int i = 0; i < seg; ++i) {
         float a = math::kTwoPi * (float)i / (float)seg;
         glm::mat4 xf = glm::rotate(glm::mat4(1.0f), a, glm::vec3(1.0f, 0.0f, 0.0f)) *
@@ -408,8 +471,9 @@ void CarModel::buildWheel(int quality) {
         rim.addTransformedBox(xf, redRim); 
     }
     
-    // 3. Trục bánh xe nhô ra màu đen
-    rim.addBox(glm::vec3(W * 0.4f, 0.0f, 0.0f), glm::vec3(0.05f, 0.12f, 0.12f), glm::vec3(0.1f));
+    // 3. Trục mâm dĩa lỗ nhô ra màu đen & nắp center cap
+    rim.addBox(glm::vec3(W * 0.38f, 0.0f, 0.0f), glm::vec3(0.06f, 0.14f, 0.14f), glm::vec3(0.12f));
+    rim.addBox(glm::vec3(W * 0.46f, 0.0f, 0.0f), glm::vec3(0.04f, 0.07f, 0.07f), glm::vec3(0.85f, 0.85f, 0.88f));
 
     tyre.build(m_tyre);
     rim.build(m_rim);
@@ -433,14 +497,29 @@ bool CarModel::build(const ResourceManager& resources, int qualityLevel) {
 int CarModel::triangleCount() const {
     return m_body.triangleCount() + m_glass.triangleCount() + m_trim.triangleCount() +
            m_chrome.triangleCount() + m_carbon.triangleCount() + m_interior.triangleCount() +
+           m_windowNet.triangleCount() + m_sideExhaust.triangleCount() +
            (m_tyre.triangleCount() + m_rim.triangleCount() + m_brake.triangleCount()) * 4;
 }
 
 void CarModel::collect(Renderer& renderer, const CarVisualState& st) const {
     const glm::mat4& M = st.transform;
 
-    Material paint = Material::carPaint(st.bodyColor);
+    Material paint = Material::carPaint(glm::vec3(1.0f));
+    if (m_res) {
+        paint.texture = &m_res->nascarLivery(st.carIndex);
+    }
+    paint.clearCoat = 0.65f;
+    paint.useVertexColor = false;
     renderer.submit(m_body, M, paint);
+
+    if (m_res) {
+        Material netMat = Material::surface(glm::vec3(0.1f), 0.8f);
+        netMat.texture = &m_res->windowNet();
+        netMat.alpha = 0.90f;
+        netMat.doubleSided = true;
+        netMat.castShadow = false;
+        renderer.submit(m_windowNet, M, netMat);
+    }
 
     Material trim = Material::plastic(glm::vec3(0.055f));
     trim.roughness = 0.62f;
@@ -456,6 +535,7 @@ void CarModel::collect(Renderer& renderer, const CarVisualState& st) const {
     renderer.submit(m_carbon, M, carbon);
 
     renderer.submit(m_chrome, M, Material::chrome());
+    renderer.submit(m_sideExhaust, M, Material::chrome());
 
     Material interior = Material::plastic(glm::vec3(0.10f));
     interior.roughness      = 0.78f;

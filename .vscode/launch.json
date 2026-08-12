@@ -2,23 +2,23 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "C/C++ Runner: Debug Session",
+      "name": "Chạy Game VacuumRacing3D (MinGW GDB)",
       "type": "cppdbg",
       "request": "launch",
+      "program": "${workspaceFolder}/VacuumRacing3D/build/VacuumRacing3D.exe",
       "args": [],
       "stopAtEntry": false,
-      "externalConsole": true,
-      "cwd": "d:/VacuumRacing3D/VacuumRacing3D/Tools",
-      "program": "d:/VacuumRacing3D/VacuumRacing3D/Tools/build/Debug/outDebug",
-      "MIMode": "gdb",
-      "miDebuggerPath": "gdb",
-      "setupCommands": [
+      "cwd": "${workspaceFolder}/VacuumRacing3D",
+      "environment": [
         {
-          "description": "Enable pretty-printing for gdb",
-          "text": "-enable-pretty-printing",
-          "ignoreFailures": true
+          "name": "PATH",
+          "value": "C:\\mingw64\\bin;${env:PATH}"
         }
-      ]
+      ],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "C:/mingw64/bin/gdb.exe",
+      "preLaunchTask": "CMake: Build (Release)"
     }
   ]
 }

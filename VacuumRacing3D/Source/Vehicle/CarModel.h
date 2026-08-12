@@ -27,6 +27,7 @@ struct CarVisualState {
     float     brakeAmount    = 0.0f;                      
     bool      reversing      = false;
     bool      headlights     = true;
+    int       carIndex       = 0;
     
     // Sơn xe màu Trắng hơi ngả Xám (Giống hình tham khảo)
     glm::vec3 bodyColor{0.90f, 0.90f, 0.92f}; 
@@ -47,6 +48,11 @@ public:
     /// plane, which is what lets the physics glue the car to the road.
     static constexpr float kRideHeight  = 0.08f;   // Hạ gầm sát rạt (cũ là 0.115f)
 
+    /// Chassis bottom geometry metrics for physics anti-penetration queries
+    static constexpr float kChassisBottomY     = 0.215f;  ///< Lowest Y coordinate of body shell loft in local model space
+    static constexpr float kChassisHalfWidth   = 1.10f;   ///< Effective chassis bottom half-width
+    static constexpr float kChassisHalfLength  = 2.13f;   ///< Effective chassis bottom half-length
+    static constexpr float kMinChassisClearance = 0.035f;  ///< Minimum chassis bottom clearance above tarmac (3.5 cm)
 
     bool build(const ResourceManager& resources, int qualityLevel = 2);
     void collect(Renderer& renderer, const CarVisualState& state) const;
@@ -80,6 +86,8 @@ private:
     Mesh m_tyre;
     Mesh m_rim;
     Mesh m_brake;
+    Mesh m_windowNet;
+    Mesh m_sideExhaust;
 
     const ResourceManager* m_res = nullptr;
     glm::vec3 m_wheelOffsets[4]{};

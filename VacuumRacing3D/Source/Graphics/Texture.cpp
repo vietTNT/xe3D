@@ -417,5 +417,131 @@ std::vector<unsigned char> white(int size) {
     return std::vector<unsigned char>((size_t)size * size * 4, 255);
 }
 
+std::vector<unsigned char> nascarLivery(int size, const glm::vec3& primaryColor, int number) {
+    std::vector<unsigned char> buf((size_t)size * size * 4, 255);
+    const glm::vec3 yellow(0.98f, 0.85f, 0.05f);  // Race Yellow for number
+    const glm::vec3 black(0.05f, 0.05f, 0.05f);   // Black outline
+
+    const int d1 = number / 10;
+    const int d2 = number % 10;
+
+    auto drawNum = [&](float dx, float dy, int digit, glm::vec3& col) {
+        if (dx < 0.0f || dx > 1.0f || dy < 0.0f || dy > 1.0f) return;
+        bool isPixel = false;
+        switch (digit) {
+            case 1:
+                isPixel = (dx >= 0.35f && dx <= 0.65f && dy >= 0.10f && dy <= 0.90f) ||
+                          (dx >= 0.20f && dx <= 0.40f && dy >= 0.75f && dy <= 0.90f) ||
+                          (dx >= 0.25f && dx <= 0.75f && dy >= 0.10f && dy <= 0.22f);
+                break;
+            case 2:
+                isPixel = (dx >= 0.15f && dx <= 0.85f && dy >= 0.72f && dy <= 0.90f) ||
+                          (dx >= 0.65f && dx <= 0.85f && dy >= 0.48f && dy <= 0.75f) ||
+                          (dx >= 0.15f && dx <= 0.85f && dy >= 0.38f && dy <= 0.52f) ||
+                          (dx >= 0.15f && dx <= 0.35f && dy >= 0.20f && dy <= 0.42f) ||
+                          (dx >= 0.15f && dx <= 0.85f && dy >= 0.10f && dy <= 0.24f);
+                break;
+            case 4:
+                isPixel = (dx >= 0.60f && dx <= 0.80f && dy >= 0.10f && dy <= 0.90f) ||
+                          (dx >= 0.15f && dx <= 0.35f && dy >= 0.45f && dy <= 0.90f) ||
+                          (dx >= 0.15f && dx <= 0.85f && dy >= 0.40f && dy <= 0.55f);
+                break;
+            case 7:
+                isPixel = (dx >= 0.15f && dx <= 0.85f && dy >= 0.72f && dy <= 0.90f) ||
+                          (dx >= 0.55f && dx <= 0.80f && dy >= 0.10f && dy <= 0.75f);
+                break;
+            case 8:
+                isPixel = (dx >= 0.15f && dx <= 0.85f && ((dy >= 0.10f && dy <= 0.24f) || (dy >= 0.43f && dy <= 0.57f) || (dy >= 0.74f && dy <= 0.88f))) ||
+                          (((dx >= 0.15f && dx <= 0.32f) || (dx >= 0.68f && dx <= 0.85f)) && dy >= 0.10f && dy <= 0.88f);
+                break;
+            case 9:
+                isPixel = (dx >= 0.15f && dx <= 0.85f && ((dy >= 0.45f && dy <= 0.58f) || (dy >= 0.74f && dy <= 0.90f))) ||
+                          (dx >= 0.15f && dx <= 0.32f && dy >= 0.45f && dy <= 0.90f) ||
+                          (dx >= 0.65f && dx <= 0.85f && dy >= 0.10f && dy <= 0.90f);
+                break;
+            default: // 0
+                isPixel = (dx >= 0.15f && dx <= 0.85f && ((dy >= 0.10f && dy <= 0.24f) || (dy >= 0.74f && dy <= 0.90f))) ||
+                          (((dx >= 0.15f && dx <= 0.32f) || (dx >= 0.68f && dx <= 0.85f)) && dy >= 0.10f && dy <= 0.90f);
+                break;
+        }
+        bool isBorder = (dx >= 0.05f && dx <= 0.95f && dy >= 0.04f && dy <= 0.96f);
+        if (isPixel) col = yellow;
+        else if (isBorder && col != yellow) col = black;
+    };
+
+    for (int y = 0; y < size; ++y) {
+        for (int x = 0; x < size; ++x) {
+            const float fx = (float)x / (float)size;
+            const float fy = (float)y / (float)size;
+
+            // Solid clean body paint in the chosen primary color (Red, Blue, Black, White, Yellow, Green)
+            glm::vec3 c = primaryColor;
+
+            // 1. Draw Race Number on Roof (Top center: fx: 0.32..0.68, fy: 0.72..0.96)
+            if (fx >= 0.32f && fx <= 0.68f && fy >= 0.72f && fy <= 0.96f) {
+                float rx = (fx - 0.32f) / 0.36f;
+                float ry = (fy - 0.72f) / 0.24f;
+                drawNum(rx * 2.0f, ry, d1, c);
+                drawNum(rx * 2.0f - 1.0f, ry, d2, c);
+            }
+
+            // 2. Draw Race Number on Left Door (fx: 0.12..0.42, fy: 0.12..0.42)
+            if (fx >= 0.12f && fx <= 0.42f && fy >= 0.12f && fy <= 0.42f) {
+                float dx = (fx - 0.12f) / 0.30f;
+                float dy = (fy - 0.12f) / 0.30f;
+                drawNum(dx * 2.0f, dy, d1, c);
+                drawNum(dx * 2.0f - 1.0f, dy, d2, c);
+            }
+
+            // 3. Draw Race Number on Right Door (fx: 0.58..0.88, fy: 0.12..0.42)
+            if (fx >= 0.58f && fx <= 0.88f && fy >= 0.12f && fy <= 0.42f) {
+                float dx = (fx - 0.58f) / 0.30f;
+                float dy = (fy - 0.12f) / 0.30f;
+                drawNum(dx * 2.0f, dy, d1, c);
+                drawNum(dx * 2.0f - 1.0f, dy, d2, c);
+            }
+
+            // 4. Yellow Fuel Cap Ring on left quarter panel (matching reference design sheet)
+            if (fx >= 0.12f && fx <= 0.18f && fy >= 0.38f && fy <= 0.48f) {
+                float cx = (fx - 0.15f) / 0.03f;
+                float cy = (fy - 0.43f) / 0.05f;
+                float dist = std::sqrt(cx * cx + cy * cy);
+                if (dist <= 0.90f && dist >= 0.60f) {
+                    c = yellow; // Yellow outer ring
+                } else if (dist < 0.60f) {
+                    c = glm::vec3(0.15f, 0.15f, 0.18f); // Fuel cap center
+                }
+            }
+
+            // 5. Front Grille Mesh (fx: 0.32..0.68, fy: 0.55..0.65)
+            if (fx >= 0.32f && fx <= 0.68f && fy >= 0.55f && fy <= 0.65f) {
+                float hx = (fx - 0.32f) / 0.36f;
+                float hy = (fy - 0.55f) / 0.10f;
+                if (hx > 0.05f && hx < 0.95f && hy > 0.10f && hy < 0.90f) {
+                    c = black;
+                }
+            }
+
+            put(buf, y * size + x, c);
+        }
+    }
+    return buf;
+}
+
+std::vector<unsigned char> windowNet(int size) {
+    std::vector<unsigned char> buf((size_t)size * size * 4, 0);
+    const int step = size / 12;
+    for (int y = 0; y < size; ++y) {
+        for (int x = 0; x < size; ++x) {
+            const int cx = x % step;
+            const int cy = y % step;
+            if (cx <= 3 || cy <= 3) {
+                put(buf, y * size + x, glm::vec3(0.06f, 0.06f, 0.06f), 0.95f);
+            }
+        }
+    }
+    return buf;
+}
+
 } // namespace procedural
 } // namespace vr

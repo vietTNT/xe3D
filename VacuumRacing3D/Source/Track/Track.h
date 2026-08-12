@@ -68,9 +68,17 @@ public:
     /// Interpolated sample at an arbitrary arc length (wraps automatically).
     TrackSample sampleAt(float distance) const;
     int         indexAt(float distance) const;
+    /// Single Source of Truth cross-section surface profile used by BOTH render mesh generation and height/collision queries.
+    struct SurfaceProfileInfo {
+        float heightOffset = 0.0f;
+        float normalTilt = 0.0f;
+        bool isCurb = false;
+    };
+    SurfaceProfileInfo sampleSurfaceProfile(float lateral) const;
+
     /// Projects a world position onto the circuit. `hint` speeds the search up.
     TrackQuery  locate(const glm::vec3& position, int hint = -1) const;
-    /// Surface point for a given arc length + lateral offset (includes banking).
+    /// Surface point for a given arc length + lateral offset (includes banking & curb profile).
     glm::vec3   surfacePoint(float distance, float lateral) const;
 
     /// Racing line helpers used by the AI.

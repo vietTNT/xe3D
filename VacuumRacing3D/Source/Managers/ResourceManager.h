@@ -13,6 +13,8 @@ namespace vr {
 class ResourceManager {
 public:
     bool loadAll(int qualityLevel = 2);
+    /// Regenerate the player car's livery (slot 0) with a new primary colour.
+    void regeneratePlayerLivery(const glm::vec3& color, int number = 12);
     void unloadAll();
 
     const Texture& asphalt() const { return m_asphalt; }
@@ -28,6 +30,10 @@ public:
     }
     int sponsorCount() const { return (int)m_sponsors.size(); }
     const Texture& splash() const { return m_splash; }
+    const Texture& nascarLivery(int index = 0) const {
+        return m_nascarLiveries[(size_t)(std::abs(index) % (int)m_nascarLiveries.size())];
+    }
+    const Texture& windowNet() const { return m_windowNet; }
 
 private:
     Texture m_asphalt;
@@ -40,6 +46,9 @@ private:
     Texture m_glow;
     std::array<Texture, 6> m_sponsors;
     Texture m_splash;
+    std::array<Texture, 6> m_nascarLiveries;
+    Texture m_windowNet;
+    int m_liverySize = 512;  ///< texture size used at load time, kept for regeneration
 };
 
 } // namespace vr

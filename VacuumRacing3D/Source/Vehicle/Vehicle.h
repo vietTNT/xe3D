@@ -74,6 +74,8 @@ public:
     /// chassis keeps last frame's height and a wheel dips through the tarmac.
     void reseat(const Track& track);
 
+    /// Physical world transform of the chassis OBB derived strictly from physics state (no render interpolation).
+    glm::mat4 chassisWorldTransform() const;
     CarVisualState visualState() const;
 
     // -------------------------------------------------------------- accessors
@@ -99,6 +101,11 @@ public:
     /// Non-zero for a few frames after hitting something; drives shake + audio.
     float            collisionImpulse() const { return m_collisionImpulse; }
     void             clearCollisionImpulse() { m_collisionImpulse = 0.0f; }
+
+    /// Calculates exact chassis OBB bottom penetration depth into track surface (0 = no penetration, >0 = depth in meters).
+    float calculateChassisPenetration(const Track& track) const;
+    /// Deterministic diagnostic test suite for physics & curb scenarios.
+    static void runPhysicsDiagnosticTests(const Track& track);
 
     RaceState      race;
     VehicleTuning  tuning;
